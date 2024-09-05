@@ -215,6 +215,11 @@
     <div id="popup"></div>
     <div id="cashierpopup"></div>
 
+    <div id='preload-images-for-performance' style='display:none'>
+        <img src="images/cashier_success.png"/>
+        <img src="images/cashier_uhoh.png"/>
+        <img src="images/cashier_standby_laughing.png"/>
+    </div>
 
     <script>
         const products = [
@@ -234,6 +239,11 @@
         const popup = document.getElementById('popup');
         const cashierpopup = document.getElementById('cashierpopup');
         
+        const beep = new Audio('audio/beep.mp3');
+        const chimes = new Audio('audio/chimes.mp3');
+        const cashregister = new Audio('audio/cashregister.mp3');
+        const girllaugh = new Audio('audio/girl-laugh.mp3');
+
         let processing = false;
         let total = 0;
 
@@ -245,8 +255,7 @@
                 return;
             }
 
-            const audio = new Audio('audio/beep.mp3');
-            audio.play();
+            beep.play();
             
             const barcode = barcodeInput.value.trim();
             const product = products.find(p => p.barcode === barcode);
@@ -260,9 +269,8 @@
                 }
                 barcodeInput.value = '';
                 window.scrollTo(0, document.body.scrollHeight);
-                
-                const audio = new Audio('audio/chimes.mp3');
-                audio.play();
+
+                chimes.play();
                 cashierpopup.style.display = 'none';
             }
             else {
@@ -314,8 +322,7 @@
                 <p>${card.price.toFixed(2)}</p>
                 <div class="loader-line"></div>
             `;
-            const audio = new Audio('audio/cashregister.mp3');
-            audio.play();
+            cashregister.play();
             
             popup.style.display = 'block';
             setTimeout(() => {
@@ -331,7 +338,6 @@
                 processing = false;
             }, 3000);
         }
-
 
         function tooltipText(text) {
             return '<div class="tooltip"><span class="tooltiptext"><h2>'+text+' </span></div><div>';
@@ -360,8 +366,7 @@
             playRandomSound(failureSoundFiles);
             cashierpopup.style.display = 'block';
             setTimeout(() => {
-                const audio = new Audio('audio/girl-laugh.mp3');
-                audio.play();
+                girllaugh.play();
             }, 500);
             setTimeout(() => {
                 cashierpopup.innerHTML = tooltipText('Oopsie. Could you please try again?')+'<img src="images/cashier_standby_laughing.png" alt="Failure"/></div>';
