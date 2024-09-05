@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green's Shop - Till Simulator for Children</title>
+    <link rel="icon" type="image/png" href="images/greenshop.png" />
+    <style>
+        body {
+            background-color: lightblue;
+            font-family: Arial, sans-serif;
+        }
+        #shop-screen {
+            width: 80%;
+            margin: 0 auto;
+            padding: 0 20px 0 0;
+            color: rgb(213,234,183);
+        }
+        #pos-screen {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        #receipt {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+        }
+        .receipt-header, .receipt-footer, .receipt-total {
+            border-top: 1px solid #000;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+        .receipt-total {
+            font-weight: bold;
+        }
+        .product-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .product-item img {
+            width: 50px;
+            height: 50px;
+        }
+
+        /*popup*/
+        #popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border: 2px solid #000;
+            z-index: 1000;
+        }
+        #cashierpopup {
+            display: none;
+            position: fixed;
+            top: 60%;
+            left: 70%;
+            transform: translate(-50%, -50%);
+            background-color: none;
+            padding: 20px;
+            z-index: 1000;
+        }
+
+        /*loading*/
+        .loader-line {
+            width: 200px;
+            height: 3px;
+            position: relative;
+            overflow: hidden;
+            background-color: #ddd;
+            margin: auto;
+            -webkit-border-radius: 20px;
+            -moz-border-radius: 20px;
+            border-radius: 20px;
+        }
+
+        .loader-line:before {
+            content: "";
+            position: absolute;
+            left: -50%;
+            height: 3px;
+            width: 40%;
+            background-color: coral;
+            -webkit-animation: lineAnim 1s linear infinite;
+            -moz-animation: lineAnim 1s linear infinite;
+            animation: lineAnim 1s linear infinite;
+            -webkit-border-radius: 20px;
+            -moz-border-radius: 20px;
+            border-radius: 20px;
+        }
+
+        @keyframes lineAnim {
+            0% {
+                left: -40%;
+            }
+            50% {
+                left: 20%;
+                width: 80%;
+            }
+            100% {
+                left: 100%;
+                width: 100%;
+            }
+        }
+
+        /*confetti*/
+        #confetti-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        z-index: 1001;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: red;
+            opacity: 0.7;
+            animation: confetti-fall linear infinite;
+            z-index: 1001;
+        }
+
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(0) rotate(0deg);
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+            }
+        }
+
+        h2{
+            color: rgb(102,70,31);
+        }
+
+        /*Tooltip*/
+        .tooltip {
+          position: relative;
+          display: inline-block;
+          border-bottom: 1px dotted black;
+        }
+
+        .tooltip .tooltiptext {
+          min-width: 200px;
+          visibility: hidden;
+          width: 120px;
+          background-color: #FFA50060;
+          color-: #fff;
+          text-align: center;
+          border-radius: 6px;
+          padding: 5px 0;
+          position: absolute;
+          z-index: 1002;
+          bottom: 150%;
+          left: 50%;
+          margin-left: -60px;
+          padding: 0 10px 0 10px;
+        }
+
+        .tooltip .tooltiptext::after {
+          content: "";
+          position: absolute;
+          top: 100%;
+          left: 50%;
+          margin-left: -10px;
+          border-width: 10px;
+          border-style: solid;
+          border-color: #FFA50060 transparent transparent transparent;
+        }
+
+        .tooltip .tooltiptext {
+          width: max-content;
+          visibility: visible;
+        }
+
+    </style>
+</head>
+<body>
+<div id="shop-screen">
+<h1>Green's Shop - Till Simulator for Children</h1>
+</div>
+    <div id="confetti-container"></div>
+    <div id="pos-screen">
+        <h2>POS Screen</h2>
+        <input type="text" id="barcode-input" placeholder="Scan barcode here" autofocus>
+        <div id="receipt">
+            <div class="receipt-header">
+                <p>Green's Shop<br>
+                123 Greenwood Street
+                <br>999 999 9999</p>
+            </div>
+            <div id="receipt-items"></div>
+            <div class="receipt-total">
+                <p>Total: <span id="total-amount">0.00</span></p>
+                <p>VAT (20%): <span id="vat-amount">0.00</span></p>
+            </div>
+            <div class="receipt-footer">
+                <p>Welcome and come back any time!</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="popup"></div>
+    <div id="cashierpopup"></div>
+
+
+    <script>
+        const products = [
+            { barcode: '12345', name: 'Product 1 sadsad', price: 10.00 },
+            { barcode: '67890', name: 'Product 2', price: 20.00 },
+            { barcode: 'CC1234', name: 'Credit Card', price: 100.00 }
+        ];
+
+        const successSoundFiles = ['yay.mp3','woo.mp3','gold.mp3','ha-ch-ch-cha.mp3','caching.wav','green.mp3'];
+        const failureSoundFiles = ['aurgh.mp3','no.mp3','no-with-attitude.mp3','uhm.mp3','uh-oh.mp3'];
+        const failureSoundFilesExtended = ['aurgh.mp3','no.mp3','no-with-attitude.mp3','uhm.mp3','uh-oh.mp3','mysneeze.mp3','questionable-chicken.mp3'];
+
+        const barcodeInput = document.getElementById('barcode-input');
+        const receiptItems = document.getElementById('receipt-items');
+        const totalAmount = document.getElementById('total-amount');
+        const vatAmount = document.getElementById('vat-amount');
+        const popup = document.getElementById('popup');
+        const cashierpopup = document.getElementById('cashierpopup');
+        
+        let processing = false;
+        let total = 0;
+
+        greetings();
+
+        barcodeInput.addEventListener('input', () => {
+            if (processing) {
+                playRandomSound(failureSoundFilesExtended);
+                return;
+            }
+
+            const audio = new Audio('audio/beep.mp3');
+            audio.play();
+            
+            const barcode = barcodeInput.value.trim();
+            const product = products.find(p => p.barcode === barcode);
+
+            if (product) {
+                if (barcode.startsWith('CC')) {
+                    processCreditCard(product);
+                } else {
+                    addProductToReceipt(product);
+                    showPopup(product);
+                }
+                barcodeInput.value = '';
+                window.scrollTo(0, document.body.scrollHeight);
+                
+                const audio = new Audio('audio/chimes.mp3');
+                audio.play();
+                cashierpopup.style.display = 'none';
+            }
+            else {
+                playRandomSound(failureSoundFilesExtended);
+            }
+        });
+
+        function addProductToReceipt(product) {
+            const item = document.createElement('div');
+            item.className = 'product-item';
+            item.innerHTML = `
+                <img src="products/${product.barcode}.jpg" alt="${product.name}"/>
+                <span>${product.name}</span>
+                <span>${product.price.toFixed(2)}</span>
+            `;
+            receiptItems.appendChild(item);
+
+            total += product.price;
+            updateTotal();
+        }
+
+        function showPopup(product) {
+            popup.code = product.barcode;
+            popup.innerHTML = `
+                <img src="products/${product.barcode}.jpg" alt="${product.name}"/>
+                <p>${product.name}</p>
+                <p>${product.price.toFixed(2)}</p>
+            `;
+            popup.style.display = 'block';
+            setTimeout(() => {
+                if(popup.code == product.barcode) {
+                    popup.code = null;
+                    popup.style.display = 'none';
+                }
+            }, 3000);
+        }
+
+        function updateTotal() {
+            totalAmount.textContent = total.toFixed(2);
+            vatAmount.textContent = (total * 0.2).toFixed(2);
+        }
+
+        function processCreditCard(card) {
+            processing = true;
+            popup.code = card.barcode;
+            popup.innerHTML = `
+                <img src="cards/${card.barcode}.jpg" alt="${card.name}">
+                <p>${card.name}</p>
+                <p>${card.price.toFixed(2)}</p>
+                <div class="loader-line"></div>
+            `;
+            const audio = new Audio('audio/cashregister.mp3');
+            audio.play();
+            
+            popup.style.display = 'block';
+            setTimeout(() => {
+                if(popup.code == card.barcode) {
+                    popup.code = null;
+                    popup.style.display = 'none';
+                }
+                if (total != 0 && card.price >= total) {
+                    showSuccess();
+                } else {
+                    showFailure();
+                }
+                processing = false;
+            }, 3000);
+        }
+
+
+        function tooltipText(text) {
+            return '<div class="tooltip"><span class="tooltiptext"><h2>'+text+' </span></div><div>';
+        }
+
+        function greetings() {
+            cashierpopup.innerHTML = tooltipText('Hi-ya! Welcome to my shop.<br>I am Miss Green.<br>How may I help you today?')+'<img src="images/cashier_standby.png" alt="Hello"/></div>';
+            cashierpopup.style.display = 'block';
+        }
+
+        function showSuccess() {
+            addConfetti();
+            cashierpopup.innerHTML = tooltipText('Thank you! Have a nice day!')+'<img src="images/cashier_success.png" alt="Success"/></div>';
+            cashierpopup.style.display = 'block';
+            playRandomSound(successSoundFiles);
+            setTimeout(() => {
+                cashierpopup.style.display = 'none';
+            }, 5000);
+            setTimeout(() => {
+                location.reload();
+            }, 5000);
+        }
+
+        function showFailure() {
+            cashierpopup.innerHTML = tooltipText('Oopsie. Could you please try again?')+'<img src="images/cashier_uhoh.png" alt="Failure"/></div>';
+            playRandomSound(failureSoundFiles);
+            cashierpopup.style.display = 'block';
+            setTimeout(() => {
+                const audio = new Audio('audio/girl-laugh.mp3');
+                audio.play();
+            }, 500);
+            setTimeout(() => {
+                cashierpopup.innerHTML = tooltipText('Oopsie. Could you please try again?')+'<img src="images/cashier_standby_laughing.png" alt="Failure"/></div>';
+            }, 1000);
+            setTimeout(() => {
+                cashierpopup.style.display = 'none';
+            }, 5000);
+        }
+
+
+        function playRandomSound(soundFiles) {
+            const randomIndex = Math.floor(Math.random() * soundFiles.length);
+            const selectedSound = soundFiles[randomIndex];
+
+            const audio = new Audio("audio/" + selectedSound);
+            audio.play();
+        }
+
+        function addConfetti(){
+            const confettiContainer = document.getElementById('confetti-container');
+            const colors = ['#ff0a54', '#ff477e', '#ff7096', '#ff85a1', '#fbb1bd', '#f9bec7'];
+
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.left = `${Math.random() * 100}vw`;
+                confetti.style.animationDuration = `${Math.random() * 3 + 2}s`;
+                confetti.style.animationDelay = `${Math.random() * 5}s`;
+                confettiContainer.appendChild(confetti);
+            }
+        }
+
+    </script>
+</body>
+</html>
