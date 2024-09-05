@@ -1,2 +1,2 @@
 # GreensShop
-Green's Shop till Simulator for Children
+Green's Shop Till Simulator for Children
