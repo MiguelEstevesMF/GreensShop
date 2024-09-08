@@ -228,6 +228,8 @@
             { barcode: '4009900482776', name: 'Extra gum', price: 3.00 },
             { barcode: '5021813035336', name: 'Snap bands', price: 5.00 },
             { barcode: 'B08MVW98C5', name: 'Tera Pro 2D QR Desktop Barcode Scanner', price: 40.00 },
+            { barcode: '720642441527', name: 'Guns N Roses', price: 4.50, type:'audio', source: 'https://archive.org/serve/09SweetChildOMine/09%20Sweet%20Child%20O%2527%20Mine.mp3'},
+            { barcode: '078636658728', name: 'Sound of Music', price: 3.50, type:'audio', source: 'https://archive.org/download/the-sound-of-music-1965-motion-picture-soundtrack/13%20So%20Long%2C%20Farewell.mp3'},
         ];
 
         const cards = [
@@ -274,31 +276,36 @@
             if (product) {
                 addProductToReceipt(product);
                 showPopup(product);
-
+                
+                if (product.type == 'audio') {
+                    new Audio(product.source).play();
+                }
+                
                 barcodeInput.value = '';
                 window.scrollTo(0, document.body.scrollHeight);
 
                 chimes.play();
                 cashierpopup.style.display = 'none';
+                return;
             }
-            else {
-                const card = cards.find(c => c.barcode === barcode);
-                if (card) {
-                    processCreditCard(card);
-                    
-                    barcodeInput.value = '';
-                    window.scrollTo(0, document.body.scrollHeight);
+            
+            const card = cards.find(c => c.barcode === barcode);
+            if (card) {
+                processCreditCard(card);
+                
+                barcodeInput.value = '';
+                window.scrollTo(0, document.body.scrollHeight);
 
-                    chimes.play();
-                    cashierpopup.style.display = 'none';
-                }
-                else {
-                    timeout = setTimeout(function () {
-                        playRandomSound(failureSoundFilesExtended);
-                        barcodeInput.value = '';
-                    }, 500);
-                }
+                chimes.play();
+                cashierpopup.style.display = 'none';
+                return;
             }
+
+            timeout = setTimeout(function () {
+                playRandomSound(failureSoundFilesExtended);
+                barcodeInput.value = '';
+            }, 500);
+
         });
 
         function addProductToReceipt(product) {
